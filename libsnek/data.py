@@ -49,8 +49,8 @@ class BoardState(object):
         return hash((self.id, self.turn, self.you.id))
 
     @functools.lru_cache(maxsize=8, typed=False)
-    def as_snake(self, other):
-        return BoardState(dict(self.raw, you=[{"x": x, "y": y} for x, y in other]))
+    def as_snake(self, other: Snake):
+        return BoardState(dict(self.raw, you=[{"x": x, "y": y} for x, y in other.body]))
 
     @property
     def id(self):
