@@ -182,13 +182,13 @@ def find_path(board_state, start_pos, end_pos):
     while not frontier.empty():
         pos = frontier.get()
         if pos == end_pos:
-            path = []
+            output = []
 
             while pos != start_pos and pos is not None:
-                path.append(pos)
+                output.append(pos)
                 pos = path[pos]
 
-            return reversed(path)
+            return list(reversed(output))
 
         neighbours = [p for p in surroundings(pos) if is_safe(board_state, p)]
 
