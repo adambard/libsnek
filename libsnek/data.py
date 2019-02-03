@@ -1,3 +1,6 @@
+import functools
+
+
 def point_to_tuple(p):
     return (p["x"], p["y"])
 
@@ -22,6 +25,14 @@ class Snake(object):
     def body(self):
         return [point_to_tuple(p) for p in self.raw["body"]]
 
+    @property
+    def head(self):
+        return self.body[0]
+
+    @property
+    def tail(self):
+        return self.body[-1]
+
     def __len__(self):
         return len(self.body)
 
@@ -36,6 +47,10 @@ class BoardState(object):
 
     def __hash__(self):
         return hash((self.id, self.turn, self.you.id))
+
+    @functools.lru_cache(maxsize=8, typed=False)
+    def as_snake(self, other):
+        return BoardState(dict(self.raw, you=[{"x": x, "y": y} for x, y in other]))
 
     @property
     def id(self):
@@ -65,3 +80,6 @@ class BoardState(object):
     def snakes(self):
         return [Snake(p) for p in self.raw["board"]["snakes"]]
 
+    @property
+    def other_snakes(self):
+        return [s for s in self.snakes if s.head != self.you.head]
