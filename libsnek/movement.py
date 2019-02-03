@@ -194,7 +194,7 @@ def find_path(board_state, start_pos, end_pos):
 
             return list(reversed(output))
 
-        neighbours = [p for p in surroundings(pos) if is_safe(board_state, p)]
+        neighbours = [p for p in surroundings(pos) if is_safe(board_state, p, max_depth=1)]
 
         for next_pos in neighbours:
             new_cost = cost[pos] + 1
