@@ -1,7 +1,7 @@
 import functools
 import queue
 from typing import Tuple
-from math import sqrt
+from libc.math cimport sqrt
 
 from .data import BoardState
 

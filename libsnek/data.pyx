@@ -1,7 +1,7 @@
 import functools
 
 
-def point_to_tuple(p):
+cdef (int, int) point_to_tuple(dict p):
     return (p["x"], p["y"])
 
 
@@ -50,7 +50,7 @@ class BoardState(object):
 
     @functools.lru_cache(maxsize=8, typed=False)
     def as_snake(self, other: Snake):
-        return BoardState(dict(self.raw, you=[{"x": x, "y": y} for x, y in other.body]))
+        return BoardState(dict(self.raw, you=other.raw))
 
     @property
     def id(self):
