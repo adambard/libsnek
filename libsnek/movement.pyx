@@ -1,8 +1,14 @@
+# distutils: language=c++
+
 import functools
 import queue
 from typing import Tuple
-from libc.math cimport sqrt
+import numpy as np
 
+from libc.math cimport sqrt
+from libcpp.queue cimport queue as cqueue
+
+cimport libsnek.data as data
 from .data import BoardState
 
 cdef enum Dir:
@@ -79,54 +85,56 @@ def distance(pos1, pos2):
     return cdistance(pos1, pos2)
 
 
-@functools.lru_cache(maxsize=128, typed=False)
-def is_safe(board_state: BoardState, pos, depth=1, max_depth=2,
-            check_edibility=True):
+cdef bint c_is_safe(int[:, :] board, (int, int) pos, int depth=1, int max_depth=2, bint check_edibility=True):
+    cdef int x, y, x2, y2
+
     x, y = pos
+    width, height = np.shape(board)
 
     if x < 0:
         return False
-    elif x >= board_state.width:
+    elif x >= width:
         return False
     elif y < 0:
         return False
-    elif y >= board_state.height:
+    elif y >= height:
         return False
 
-    for snake in board_state.snakes:
-        # Heads and tails are handled specially later
-        if pos in snake.body[:-1]:
-            return False
+    val = board[x, y]
 
+    if val == data.YOU_BODY:
+        return False
+    elif val == data.YOU_HEAD:
+        return False
+    elif val == data.SNAKE_BODY:
+        return False
+    elif val == data.SNAKE_HEAD:
+        return False
+    elif val == data.SNAKE_TAIL:
         # The tail is safe, *unless* this snake is about to eat
-        tail = snake.body[:-1]
-        if pos == tail:
-            head = snake.body[0]
-            for p in csurroundings(head):
-                if p in board_state.food:
-                    return False
-
-        if check_edibility and snake.id != board_state.you.id:
-            # The area around another snake's head is safe, if
-            # that snake is shorter than us (and is not us)
-            if len(snake) >= len(board_state.you):
-                if pos in csurroundings(snake.body[0]):
-                    return False
-
+        for x2, y2 in csurroundings(pos):
+            if board[x2, y2] == data.FOOD:
+                return False
 
     if depth >= max_depth:
         return True
-
     else:
-        return any(
-            is_safe(
-                board_state,
-                p,
-                depth=depth + 1,
-                max_depth=max_depth,
-                check_edibility=check_edibility
-            ) for p in csurroundings(pos)
-        )
+        for p in csurroundings(pos):
+            if c_is_safe(board,
+                       p,
+                       depth + 1,
+                       max_depth=max_depth,
+                       check_edibility=check_edibility):
+                return True
+
+        return False
+
+
+@functools.lru_cache(maxsize=128, typed=False)
+def is_safe(board_state: BoardState, pos, depth=1, max_depth=2,
+            check_edibility=True):
+
+    return c_is_safe(board_state.board_array, pos, depth=depth, max_depth=max_depth, check_edibility=check_edibility)
 
 
 @functools.lru_cache(maxsize=128, typed=False)
@@ -143,16 +151,23 @@ def flood_fill(board_state, start_pos, threshold=None, pred=None):
     if not pred(board_state, start_pos):
         return set()
 
-    visited = {start_pos}
-    frontier = queue.Queue()
-    frontier.put(start_pos)
+    visited = set()
+
+    cdef cqueue[(int, int)] frontier
+
+    frontier.push(start_pos)
 
     while not frontier.empty():
-        node = frontier.get()
+        node = frontier.front()
+        frontier.pop()
+
+        if node in visited:
+            continue
+
         visited.add(node)
         for p in csurroundings(node):
             if p not in visited and pred(board_state, p):
-                frontier.put(p)
+                frontier.push(p)
 
         if threshold and len(visited) >= threshold:
             return visited
@@ -169,13 +184,15 @@ def find_path_pred(board_state, start_pos, end_pred):
     Many thanks to https://www.redblobgames.com/pathfinding/a-star/introduction.html
     """
 
-    frontier = queue.Queue()
-    frontier.put(start_pos)
+    cdef cqueue[(int, int)] frontier
+    frontier.push(start_pos)
 
     path = {start_pos: None}
 
     while not frontier.empty():
-        pos = frontier.get()
+        pos = frontier.front()
+        frontier.pop()
+
         if end_pred(pos):
             # Found it! Now work backwards to get the distance
 
@@ -189,15 +206,52 @@ def find_path_pred(board_state, start_pos, end_pred):
 
         for next_pos in csurroundings(pos):
             if next_pos not in path and is_safe(board_state, next_pos, max_depth=1):
-                frontier.put(next_pos)
+                frontier.push(next_pos)
                 path[next_pos] = pos
 
     # Could not find a matching point
     return None
 
 
+cdef list c_find_path(int[:, :] board, (int, int) start_pos, (int, int) end_pos):
+    # Use breadth-first search to find the shortest path to a particular point
+    # TODO: use A* instead (Need a priority queue)
+
+    cdef (int, int) pos
+    cdef dict path = {start_pos: None}
+    cdef cqueue[(int, int)] frontier
+    frontier.push(start_pos)
+
+    while not frontier.empty():
+        pos = frontier.front()
+        frontier.pop()
+
+        if pos == end_pos:
+            output = []
+            while pos != start_pos and pos is not None:
+                output.append(pos)
+                pos = path[pos]
+
+            return list(reversed(output))
+
+        for next_pos in csurroundings(pos):
+            if next_pos in path:
+                continue
+
+            if not c_is_safe(board, next_pos, 1, max_depth=1):
+                continue
+
+            frontier.push(next_pos)
+            path[next_pos] = pos
+
+    return None
+
 
 def find_path(board_state, start_pos, end_pos):
+    return c_find_path(board_state.board_array, start_pos, end_pos)
+
+
+def find_path_astar(board_state, start_pos, end_pos):
     # Use A* to find the shortest path to a particular point
 
     frontier = queue.PriorityQueue()
@@ -207,6 +261,7 @@ def find_path(board_state, start_pos, end_pos):
 
     while not frontier.empty():
         pos = frontier.get()
+
         if pos == end_pos:
             output = []
 
@@ -216,9 +271,10 @@ def find_path(board_state, start_pos, end_pos):
 
             return list(reversed(output))
 
-        neighbours = [p for p in csurroundings(pos) if is_safe(board_state, p, max_depth=1)]
+        for next_pos in csurroundings(pos):
+            if not is_safe(board_state, next_pos, max_depth=1):
+                continue
 
-        for next_pos in neighbours:
             new_cost = cost[pos] + 1
             if next_pos not in cost or new_cost < cost[next_pos]:
                 cost[next_pos] = new_cost

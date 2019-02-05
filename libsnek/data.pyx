@@ -1,6 +1,9 @@
 import functools
 import numpy as np
+
 from typing import List, Tuple
+
+from libc.stdlib cimport malloc, free
 
 
 cdef (int, int) point_to_tuple(dict p):
@@ -8,17 +11,10 @@ cdef (int, int) point_to_tuple(dict p):
 
 
 cdef class Snake(object):
-    cdef long[:, :] _body
-    cdef int _health
     cdef dict raw
 
     def __init__(self, raw_snake):
         self.raw = raw_snake
-
-        self._health = raw_snake["health"]
-        self._body = np.array([
-            point_to_tuple(p) for p in self.raw["body"]
-        ])
 
     @property
     def id(self):
@@ -30,19 +26,7 @@ cdef class Snake(object):
 
     @property
     def health(self):
-        return self._health
-
-    @property
-    def cbody(self):
-        return self._body
-
-    @property
-    def chead(self):
-        return self.cbody[0, :]
-
-    @property
-    def ctail(self):
-        return self.cbody[-1, :]
+        return self.raw["health"]
 
     @property
     def body(self) -> List[Tuple[int, int]]:
@@ -60,11 +44,40 @@ cdef class Snake(object):
         return len(self.body)
 
 
+
 cdef class BoardState(object):
+    cdef int[:, :] _board
     cdef dict raw
 
     def __init__(self, raw_board_state):
         self.raw = raw_board_state
+
+        self.init_board()
+
+    def init_board(self):
+        self._board = np.zeros((self.width, self.height), dtype=np.intc)
+
+        for (x, y) in self.food:
+            self._board[x, y] = FOOD
+
+        x, y = self.you.head
+        self._board[x, y] = YOU_HEAD
+
+        for x, y in self.you.body[1:-1]:
+            self._board[x, y] = YOU_BODY
+
+        x, y = self.you.tail
+        self._board[x, y] = YOU_TAIL
+
+        for s in self.other_snakes:
+            x, y = s.head
+            self._board[x, y] = SNAKE_HEAD
+
+            x, y = s.tail
+            self._board[x, y] = SNAKE_TAIL
+
+            for x, y in s.body[1:-1]:
+                self._board[x, y] = SNAKE_BODY
 
     def __eq__(self, other):
         return other.id == self.id and other.turn == self.turn and other.you.id == self.you.id
@@ -75,6 +88,10 @@ cdef class BoardState(object):
     @functools.lru_cache(maxsize=8, typed=False)
     def as_snake(self, other: Snake):
         return BoardState(dict(self.raw, you=other.raw))
+
+    @property
+    def board_array(self):
+        return self._board
 
     @property
     def id(self):
