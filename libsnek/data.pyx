@@ -63,11 +63,11 @@ cdef class BoardState(object):
         x, y = self.you.head
         self._board[x, y] = YOU_HEAD
 
-        for x, y in self.you.body[1:-1]:
-            self._board[x, y] = YOU_BODY
-
         x, y = self.you.tail
         self._board[x, y] = YOU_TAIL
+
+        for x, y in self.you.body[1:-1]:
+            self._board[x, y] = YOU_BODY
 
         for s in self.other_snakes:
             x, y = s.head
