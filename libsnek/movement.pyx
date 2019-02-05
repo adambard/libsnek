@@ -116,6 +116,11 @@ cdef bint c_is_safe(int[:, :] board, (int, int) pos, int depth=1, int max_depth=
             if board[x2, y2] == data.FOOD:
                 return False
 
+    # Snake head surroundings are considered unsafe for now (TODO consider other snake size)
+    for x2, y2 in csurroundings(pos):
+        if board[x2, y2] == data.SNAKE_HEAD:
+            return False
+
     if depth >= max_depth:
         return True
     else:
