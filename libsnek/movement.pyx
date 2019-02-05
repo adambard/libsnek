@@ -5,6 +5,21 @@ from libc.math cimport sqrt
 
 from .data import BoardState
 
+cdef enum Dir:
+    DIR_U, DIR_R, DIR_D, DIR_L
+
+
+cdef (int, int) cmove((int, int) pos, Dir d):
+    x, y = pos
+    if d == DIR_U:
+        return (x, y - 1)
+    elif d == DIR_R:
+        return (x + 1, y)
+    elif d == DIR_D:
+        return (x, y + 1)
+    elif d == DIR_L:
+        return (x - 1, y)
+
 
 def move(pos: Tuple[int, int], d):
     """
@@ -25,17 +40,21 @@ def move(pos: Tuple[int, int], d):
         return pos
 
 
+cdef ((int, int), (int, int), (int, int), (int, int)) csurroundings((int, int) pos):
+    return (
+        cmove(pos, DIR_U),
+        cmove(pos, DIR_R),
+        cmove(pos, DIR_D),
+        cmove(pos, DIR_L),
+    )
+
+
 def surroundings(pos):
     """
     Return a list of the result of moving up, right, down, and left
     from the provided point (in that order)
     """
-    return [
-        move(pos, "u"),
-        move(pos, "r"),
-        move(pos, "d"),
-        move(pos, "l"),
-    ]
+    return csurroundings(pos)
 
 
 def distance_abs(pos1, pos2):
@@ -49,12 +68,15 @@ def distance_abs(pos1, pos2):
     return sqrt((x1 - x2)**2.0 + (y1 - y2)**2.0)
 
 
-def distance(pos1, pos2):
-    """Manhattan distance between two points"""
+cdef int cdistance((int, int) pos1, (int, int) pos2):
     x1, y1 = pos1
     x2, y2 = pos2
 
     return abs(x1 - x2) + abs(y1 - y2)
+
+def distance(pos1, pos2):
+    """Manhattan distance between two points"""
+    return cdistance(pos1, pos2)
 
 
 @functools.lru_cache(maxsize=128, typed=False)
@@ -80,15 +102,15 @@ def is_safe(board_state: BoardState, pos, depth=1, max_depth=2,
         tail = snake.body[:-1]
         if pos == tail:
             head = snake.body[0]
-            for p in surroundings(head):
-                if p in  board_state.food:
+            for p in csurroundings(head):
+                if p in board_state.food:
                     return False
 
         if check_edibility and snake.id != board_state.you.id:
             # The area around another snake's head is safe, if
             # that snake is shorter than us (and is not us)
             if len(snake) >= len(board_state.you):
-                if pos in surroundings(snake.body[0]):
+                if pos in csurroundings(snake.body[0]):
                     return False
 
 
@@ -103,7 +125,7 @@ def is_safe(board_state: BoardState, pos, depth=1, max_depth=2,
                 depth=depth + 1,
                 max_depth=max_depth,
                 check_edibility=check_edibility
-            ) for p in surroundings(pos)
+            ) for p in csurroundings(pos)
         )
 
 
@@ -128,7 +150,7 @@ def flood_fill(board_state, start_pos, threshold=None, pred=None):
     while not frontier.empty():
         node = frontier.get()
         visited.add(node)
-        for p in surroundings(node):
+        for p in csurroundings(node):
             if p not in visited and pred(board_state, p):
                 frontier.put(p)
 
@@ -165,7 +187,7 @@ def find_path_pred(board_state, start_pos, end_pred):
 
             return list(reversed(output))
 
-        for next_pos in surroundings(pos):
+        for next_pos in csurroundings(pos):
             if next_pos not in path and is_safe(board_state, next_pos, max_depth=1):
                 frontier.put(next_pos)
                 path[next_pos] = pos
@@ -194,7 +216,7 @@ def find_path(board_state, start_pos, end_pos):
 
             return list(reversed(output))
 
-        neighbours = [p for p in surroundings(pos) if is_safe(board_state, p, max_depth=1)]
+        neighbours = [p for p in csurroundings(pos) if is_safe(board_state, p, max_depth=1)]
 
         for next_pos in neighbours:
             new_cost = cost[pos] + 1

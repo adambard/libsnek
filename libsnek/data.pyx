@@ -1,28 +1,51 @@
 import functools
+import numpy as np
+from typing import List, Tuple
 
 
 cdef (int, int) point_to_tuple(dict p):
     return (p["x"], p["y"])
 
 
-class Snake(object):
+cdef class Snake(object):
+    cdef long[:, :] _body
+    cdef int _health
+    cdef dict raw
+
     def __init__(self, raw_snake):
         self.raw = raw_snake
+
+        self._health = raw_snake["health"]
+        self._body = np.array([
+            point_to_tuple(p) for p in self.raw["body"]
+        ])
 
     @property
     def id(self):
         return self.raw["id"]
 
     @property
-    def health(self):
-        return self.raw["health"]
-
-    @property
     def name(self):
         return self.raw["name"]
 
     @property
-    def body(self):
+    def health(self):
+        return self._health
+
+    @property
+    def cbody(self):
+        return self._body
+
+    @property
+    def chead(self):
+        return self.cbody[0, :]
+
+    @property
+    def ctail(self):
+        return self.cbody[-1, :]
+
+    @property
+    def body(self) -> List[Tuple[int, int]]:
         return [point_to_tuple(p) for p in self.raw["body"]]
 
     @property
@@ -37,7 +60,8 @@ class Snake(object):
         return len(self.body)
 
 
-class BoardState(object):
+cdef class BoardState(object):
+    cdef dict raw
 
     def __init__(self, raw_board_state):
         self.raw = raw_board_state

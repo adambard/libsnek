@@ -1,5 +1,7 @@
 import uuid
 from libsnek import data
+from nose.tools import eq_
+import numpy as np
 
 def test_board_state():
     raw_you = {
@@ -48,5 +50,13 @@ def test_board_state():
 
     bs = data.BoardState(raw)
 
-    assert bs.you.body == [(4, 2), (4, 3), (5, 3), (5, 4)]
+    eq_(bs.you.body, [(4, 2), (4, 3), (5, 3), (5, 4)])
+    assert np.all(bs.you.cbody == np.array([(4, 2), (4, 3), (5, 3), (5, 4)]))
 
+    eq_(bs.you.head, (4, 2))
+    assert np.all(bs.you.chead == np.array([4, 2]))
+
+    eq_(bs.you.tail, (5, 4))
+    assert np.all(bs.you.ctail == np.array([5, 4]))
+
+    eq_(bs.you.health, 63)
