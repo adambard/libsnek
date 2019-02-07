@@ -85,7 +85,7 @@ def distance(pos1, pos2):
     return cdistance(pos1, pos2)
 
 
-cdef bint c_is_safe(int[:, :] board, (int, int) pos, int depth=1, int max_depth=2, bint check_edibility=True):
+cdef bint c_is_safe(int[:, :] board, (int, int) pos, int depth=1, int max_depth=2):
     cdef int x, y, x2, y2
 
     x, y = pos
@@ -110,20 +110,7 @@ cdef bint c_is_safe(int[:, :] board, (int, int) pos, int depth=1, int max_depth=
         return False
     elif val == data.SNAKE_HEAD:
         return False
-    elif val == data.SNAKE_TAIL:
-        # The tail is safe, *unless* this snake is about to eat
-        for x2, y2 in csurroundings(pos):
-            if x2 < 0 or x2 >= width or y2 < 0 or y2 >= height:
-                continue
-            if board[x2, y2] == data.FOOD:
-                return False
-
-    # Snake head surroundings are considered unsafe for now (TODO consider other snake size)
-    for x2, y2 in csurroundings(pos):
-        if x2 < 0 or x2 >= width or y2 < 0 or y2 >= height:
-            continue
-        if board[x2, y2] == data.SNAKE_HEAD:
-            return False
+    # Snake tail case is handled outside this function
 
     if depth >= max_depth:
         return True
@@ -131,19 +118,43 @@ cdef bint c_is_safe(int[:, :] board, (int, int) pos, int depth=1, int max_depth=
         for p in csurroundings(pos):
             if c_is_safe(board,
                        p,
-                       depth + 1,
-                       max_depth=max_depth,
-                       check_edibility=check_edibility):
+                       depth=depth + 1,
+                       max_depth=max_depth):
                 return True
 
         return False
+
+
+def safe_from_tail(board_state: BoardState, pos):
+    for s in board_state.snakes:
+        if pos == s.tail and s.head in board_state.food:
+            return False
+
+    return True
+
+
+def is_edible(board_state: BoardState, pos):
+    return any(
+        pos in csurroundings(s.head)
+        for s in board_state.other_snakes
+        if len(s) >= len(board_state.you)
+    )
 
 
 @functools.lru_cache(maxsize=128, typed=False)
 def is_safe(board_state: BoardState, pos, depth=1, max_depth=2,
             check_edibility=True):
 
-    return c_is_safe(board_state.board_array, pos, depth=depth, max_depth=max_depth, check_edibility=check_edibility)
+    return (
+        c_is_safe(
+            board_state.board_array,
+            pos,
+            depth=depth,
+            max_depth=max_depth
+        )
+        and safe_from_tail(board_state, pos)
+        and not is_edible(board_state, pos)
+    )
 
 
 @functools.lru_cache(maxsize=128, typed=False)
@@ -268,6 +279,8 @@ def find_path_astar(board_state, start_pos, end_pos):
     path = {start_pos: None}
     cost = {start_pos: 0}
 
+    board = board_state.board_array
+
     while not frontier.empty():
         pos = frontier.get()
 
@@ -281,7 +294,7 @@ def find_path_astar(board_state, start_pos, end_pos):
             return list(reversed(output))
 
         for next_pos in csurroundings(pos):
-            if not is_safe(board_state, next_pos, max_depth=1):
+            if not c_is_safe(board, next_pos, depth=1, max_depth=1):
                 continue
 
             new_cost = cost[pos] + 1
