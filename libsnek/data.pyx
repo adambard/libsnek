@@ -86,7 +86,20 @@ cdef class BoardState(object):
         return hash((self.id, self.turn, self.you.id))
 
     @functools.lru_cache(maxsize=8, typed=False)
-    def as_snake(self, other: Snake):
+    def as_snake(self, other: Snake, with_move=None):
+        if with_move is not None:
+            x, y = with_move
+            # Simulate a move by <you>, whoever that is at the moment
+            snakes = self.raw["board"]["snakes"]
+
+            snakes = [
+                dict(s, body=[{"x": x, "y": y}] + s["body"][:-1]) if s["id"] == self.you.id else s
+                for s in snakes
+            ]
+
+            board = dict(self.raw["board"], snakes=snakes)
+            return BoardState(dict(self.raw, you=other.raw, board=board))
+
         return BoardState(dict(self.raw, you=other.raw))
 
     @property
@@ -123,4 +136,4 @@ cdef class BoardState(object):
 
     @property
     def other_snakes(self):
-        return [s for s in self.snakes if s.head != self.you.head]
+        return [s for s in self.snakes if s.id != self.you.id]
