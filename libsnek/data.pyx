@@ -57,6 +57,8 @@ cdef class BoardState(object):
     def init_board(self):
         self._board = np.zeros((self.width, self.height), dtype=np.intc)
 
+        cdef int x, y
+
         for (x, y) in self.food:
             self._board[x, y] = FOOD
 
@@ -83,7 +85,7 @@ cdef class BoardState(object):
         return other.id == self.id and other.turn == self.turn and other.you.id == self.you.id
 
     def __hash__(self):
-        return hash((self.id, self.turn, self.you.id))
+        return hash((self.id, self.turn, self.you.head))
 
     @functools.lru_cache(maxsize=8, typed=False)
     def as_snake(self, other: Snake, with_move=None):

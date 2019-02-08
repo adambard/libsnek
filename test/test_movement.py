@@ -67,3 +67,13 @@ def test_benchmark_find_path():
     for _ in range(N):
         movement.find_path_astar(bs, (4, 4), (11, 11))
     print("Find path astar:", time.time() - start_time)
+
+
+def test_flood_fill_with_swapped_board():
+    bs = data.BoardState(RAW)
+
+    him = bs.other_snakes[0]
+
+    new_board = bs.as_snake(him)
+    visited = movement.flood_fill(new_board, him.head, threshold=10)
+    yield eq_, len(visited), 10

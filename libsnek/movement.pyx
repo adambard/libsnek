@@ -104,8 +104,6 @@ cdef bint c_is_safe(int[:, :] board, (int, int) pos, int depth=1, int max_depth=
 
     if val == data.YOU_BODY:
         return False
-    elif val == data.YOU_HEAD:
-        return False
     elif val == data.SNAKE_BODY:
         return False
     elif val == data.SNAKE_HEAD:
@@ -126,7 +124,7 @@ cdef bint c_is_safe(int[:, :] board, (int, int) pos, int depth=1, int max_depth=
 
 
 def safe_from_tail(board_state: BoardState, pos):
-    for s in board_state.snakes:
+    for s in board_state.other_snakes:
         if pos == s.tail and s.head in board_state.food:
             return False
 
