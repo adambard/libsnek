@@ -104,6 +104,10 @@ cdef bint c_is_safe(int[:, :] board, (int, int) pos, int depth=1, int max_depth=
 
     if val == data.YOU_BODY:
         return False
+    elif val == data.YOU_HEAD:
+        # Your head is never an immediate dangeer, but heads
+        # become bodies.
+        return False
     elif val == data.SNAKE_BODY:
         return False
     elif val == data.SNAKE_HEAD:
@@ -165,9 +169,6 @@ def flood_fill(board_state, start_pos, threshold=None, pred=None):
     """
 
     pred = pred or functools.partial(is_safe, max_depth=1)
-
-    if not pred(board_state, start_pos):
-        return set()
 
     visited = set()
 

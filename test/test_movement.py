@@ -2,7 +2,7 @@ import time
 from libsnek import movement, data
 from nose.tools import eq_
 
-from .fixtures import RAW
+from .fixtures import RAW, RAW_DANGER
 
 
 def test_move():
@@ -77,3 +77,10 @@ def test_flood_fill_with_swapped_board():
     new_board = bs.as_snake(him)
     visited = movement.flood_fill(new_board, him.head, threshold=10)
     yield eq_, len(visited), 10
+
+
+def test_flood_fill_own_head_danger_if_not_start():
+    bs = data.BoardState(RAW_DANGER)
+
+    visited = movement.flood_fill(bs, (5, 2))
+    yield eq_, len(visited), 1
