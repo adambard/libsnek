@@ -85,9 +85,25 @@ def distance(pos1, pos2):
     return cdistance(pos1, pos2)
 
 
-cdef bint c_is_safe(int[:, :] board, (int, int) pos, int depth=1, int max_depth=2):
-    cdef int x, y, x2, y2
+def safe_from_tail(board_state: BoardState, pos):
+    for s in board_state.other_snakes:
+        if pos == s.tail:
+            for p in surroundings(s.head):
+                if p in board_state.food:
+                    return False
 
+    return True
+
+
+def is_edible(board_state: BoardState, pos):
+    return any(
+        pos in csurroundings(s.head)
+        for s in board_state.other_snakes
+        if len(s) >= len(board_state.you)
+    )
+
+
+cdef bint c_is_ok(int[:, :] board, (int, int) pos):
     x, y = pos
     width, height = np.shape(board)
 
@@ -105,14 +121,31 @@ cdef bint c_is_safe(int[:, :] board, (int, int) pos, int depth=1, int max_depth=
     if val == data.YOU_BODY:
         return False
     elif val == data.YOU_HEAD:
-        # Your head is never an immediate dangeer, but heads
+        # Your head is never an immediate danger, but heads
         # become bodies.
         return False
     elif val == data.SNAKE_BODY:
         return False
     elif val == data.SNAKE_HEAD:
         return False
-    # Snake tail case is handled outside this function
+
+    return True
+
+
+@functools.lru_cache(maxsize=128, typed=False)
+def is_ok(board_state: BoardState, pos):
+    return (
+        c_is_ok(board_state.board_array, pos)
+        and safe_from_tail(board_state, pos)
+        and not is_edible(board_state, pos)
+    )
+
+
+cdef bint c_is_safe(int[:, :] board, (int, int) pos, int depth=1, int max_depth=2):
+    cdef int x, y, x2, y2
+
+    if not c_is_ok(board, pos):
+        return False
 
     if depth >= max_depth:
         return True
@@ -125,22 +158,6 @@ cdef bint c_is_safe(int[:, :] board, (int, int) pos, int depth=1, int max_depth=
                 return True
 
         return False
-
-
-def safe_from_tail(board_state: BoardState, pos):
-    for s in board_state.other_snakes:
-        if pos == s.tail and s.head in board_state.food:
-            return False
-
-    return True
-
-
-def is_edible(board_state: BoardState, pos):
-    return any(
-        pos in csurroundings(s.head)
-        for s in board_state.other_snakes
-        if len(s) >= len(board_state.you)
-    )
 
 
 @functools.lru_cache(maxsize=128, typed=False)

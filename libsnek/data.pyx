@@ -94,8 +94,13 @@ cdef class BoardState(object):
             # Simulate a move by <you>, whoever that is at the moment
             snakes = self.raw["board"]["snakes"]
 
+            if with_move in self.food:
+                new_body = [{"x": x, "y": y}] + self.raw["you"]["body"]
+            else:
+                new_body = [{"x": x, "y": y}] + self.raw["you"]["body"][:-1]
+
             snakes = [
-                dict(s, body=[{"x": x, "y": y}] + s["body"][:-1]) if s["id"] == self.you.id else s
+                dict(s, body=new_body) if s["id"] == self.you.id else s
                 for s in snakes
             ]
 
