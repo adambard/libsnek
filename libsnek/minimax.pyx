@@ -22,7 +22,7 @@ cdef bint c_is_dead(int[:, :] board, (int, int) pos):
         return True
 
     width, height = np.shape(board)
-    if x > width or y > height:
+    if x >= width or y >= height:
         return True
 
     val = board[x, y]
