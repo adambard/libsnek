@@ -45,6 +45,23 @@ cdef class Snake(object):
         return len(self.body)
 
 
+cdef void setVal(int[:, :] board, (int, int) point, PosState val):
+    cdef int width, height
+    cdef int x, y
+
+    x, y = point
+
+    if x < 0 or y < 0:
+        return
+
+    width, height = np.shape(board)
+
+    if x >= width or y >= height:
+        return
+
+    board[x, y] = val
+
+
 
 cdef class BoardState(object):
     cdef int[:, :] _board
@@ -58,29 +75,21 @@ cdef class BoardState(object):
     def init_board(self):
         self._board = np.zeros((self.width, self.height), dtype=np.intc)
 
-        cdef int x, y
+        for pos in self.food:
+            setVal(self._board, pos, FOOD)
 
-        for (x, y) in self.food:
-            self._board[x, y] = FOOD
+        setVal(self._board, self.you.head, YOU_HEAD)
+        setVal(self._board, self.you.tail, YOU_TAIL)
 
-        x, y = self.you.head
-        self._board[x, y] = YOU_HEAD
-
-        x, y = self.you.tail
-        self._board[x, y] = YOU_TAIL
-
-        for x, y in self.you.body[1:-1]:
-            self._board[x, y] = YOU_BODY
+        for p in self.you.body[1:-1]:
+            setVal(self._board, p, YOU_BODY)
 
         for s in self.other_snakes:
-            x, y = s.head
-            self._board[x, y] = SNAKE_HEAD
+            setVal(self._board, s.head, SNAKE_HEAD)
+            setVal(self._board, s.tail, SNAKE_TAIL)
 
-            x, y = s.tail
-            self._board[x, y] = SNAKE_TAIL
-
-            for x, y in s.body[1:-1]:
-                self._board[x, y] = SNAKE_BODY
+            for pos in s.body[1:-1]:
+                setVal(self._board, pos, SNAKE_BODY)
 
     def __eq__(self, other):
         return other.id == self.id and other.turn == self.turn and other.you.id == self.you.id

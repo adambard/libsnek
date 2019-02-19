@@ -19,6 +19,11 @@ def test_board_state():
     eq_(bs.board_array[5, 2], 1)
 
 
+def test__as_snake__negative_head__doesnt_error():
+    bs = data.BoardState(RAW)
+    bs.as_snake(bs.you, (4, -1))
+
+
 def test_as_snake():
     bs = data.BoardState(RAW)
 
