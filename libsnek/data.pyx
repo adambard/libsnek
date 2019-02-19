@@ -96,11 +96,13 @@ cdef class BoardState(object):
 
             if with_move in self.food:
                 new_body = [{"x": x, "y": y}] + self.raw["you"]["body"]
+                new_health = 100
             else:
                 new_body = [{"x": x, "y": y}] + self.raw["you"]["body"][:-1]
+                new_health = self.you.health - 1
 
             snakes = [
-                dict(s, body=new_body) if s["id"] == self.you.id else s
+                dict(s, body=new_body, health=new_health) if s["id"] == self.you.id else s
                 for s in snakes
             ]
 

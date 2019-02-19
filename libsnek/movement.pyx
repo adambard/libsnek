@@ -137,7 +137,6 @@ def is_ok(board_state: BoardState, pos):
     return (
         c_is_ok(board_state.board_array, pos)
         and safe_from_tail(board_state, pos)
-        and not is_edible(board_state, pos)
     )
 
 
@@ -185,7 +184,7 @@ def flood_fill(board_state, start_pos, threshold=None, pred=None):
     :param pred: If a predicate is provided, use this instead of is_safe
     """
 
-    pred = pred or functools.partial(is_safe, max_depth=1)
+    pred = pred or is_ok
 
     visited = set()
 
@@ -241,7 +240,7 @@ def find_path_pred(board_state, start_pos, end_pred):
             return list(reversed(output))
 
         for next_pos in csurroundings(pos):
-            if next_pos not in path and is_safe(board_state, next_pos, max_depth=1):
+            if next_pos not in path and is_ok(board_state, next_pos):
                 frontier.push(next_pos)
                 path[next_pos] = pos
 
@@ -274,7 +273,7 @@ cdef list c_find_path(int[:, :] board, (int, int) start_pos, (int, int) end_pos)
             if next_pos in path:
                 continue
 
-            if not c_is_safe(board, next_pos, 1, max_depth=1):
+            if not c_is_ok(board, next_pos):
                 continue
 
             frontier.push(next_pos)
@@ -310,7 +309,7 @@ def find_path_astar(board_state, start_pos, end_pos):
             return list(reversed(output))
 
         for next_pos in csurroundings(pos):
-            if not c_is_safe(board, next_pos, depth=1, max_depth=1):
+            if not c_is_ok(board, next_pos):
                 continue
 
             new_cost = cost[pos] + 1

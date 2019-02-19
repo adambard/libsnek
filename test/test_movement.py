@@ -40,7 +40,7 @@ def test_flood_fill():
     bs = data.BoardState(RAW)
 
     points = movement.flood_fill(bs, (8, 4))
-    eq_(len(points), 132)
+    eq_(len(points), 135)
 
 
 def test_find_path():
