@@ -1,3 +1,4 @@
+import uuid
 import functools
 import numpy as np
 
@@ -106,8 +107,10 @@ cdef class BoardState(object):
                 for s in snakes
             ]
 
+            you = [s for s in snakes if s["id"] == other.id][0]
+            game = dict(self.raw["game"], id=str(uuid.uuid4()))
             board = dict(self.raw["board"], snakes=snakes)
-            return BoardState(dict(self.raw, you=other.raw, board=board))
+            return BoardState(dict(self.raw, you=you, board=board, game=game))
 
         return BoardState(dict(self.raw, you=other.raw))
 
