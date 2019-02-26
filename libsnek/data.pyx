@@ -4,8 +4,6 @@ import numpy as np
 
 from typing import List, Tuple
 
-from libc.stdlib cimport malloc, free
-
 
 cdef (int, int) point_to_tuple(dict p):
     return (p["x"], p["y"])
@@ -14,8 +12,11 @@ cdef (int, int) point_to_tuple(dict p):
 cdef class Snake(object):
     cdef dict raw
 
+    cdef public list body
+
     def __init__(self, raw_snake):
         self.raw = raw_snake
+        self.body = [point_to_tuple(p) for p in self.raw["body"]]
 
     @property
     def id(self):
@@ -28,10 +29,6 @@ cdef class Snake(object):
     @property
     def health(self):
         return self.raw["health"]
-
-    @property
-    def body(self) -> List[Tuple[int, int]]:
-        return [point_to_tuple(p) for p in self.raw["body"]]
 
     @property
     def head(self):
@@ -67,13 +64,27 @@ cdef class BoardState(object):
     cdef int[:, :] _board
     cdef dict raw
 
+    cdef public Snake you
+    cdef public set food
+    cdef public list snakes
+    cdef public list other_snakes
+
     def __init__(self, raw_board_state):
         self.raw = raw_board_state
+
+        self.you = Snake(self.raw["you"])
+        self.food = {
+            point_to_tuple(p) for p in self.raw["board"]["food"]
+        }
+        self.snakes = [Snake(p) for p in self.raw["board"]["snakes"]]
+        self.other_snakes = [s for s in self.snakes if s.id != self.you.id]
 
         self.init_board()
 
     def init_board(self):
         self._board = np.zeros((self.width, self.height), dtype=np.intc)
+
+        cdef (int, int) pos
 
         for pos in self.food:
             setVal(self._board, pos, FOOD)
@@ -81,8 +92,8 @@ cdef class BoardState(object):
         setVal(self._board, self.you.head, YOU_HEAD)
         setVal(self._board, self.you.tail, YOU_TAIL)
 
-        for p in self.you.body[1:-1]:
-            setVal(self._board, p, YOU_BODY)
+        for pos in self.you.body[1:-1]:
+            setVal(self._board, pos, YOU_BODY)
 
         for s in self.other_snakes:
             setVal(self._board, s.head, SNAKE_HEAD)
@@ -136,25 +147,9 @@ cdef class BoardState(object):
         return self.raw["turn"]
 
     @property
-    def you(self):
-        return Snake(self.raw["you"])
-
-    @property
     def width(self):
         return self.raw["board"]["width"]
 
     @property
     def height(self):
         return self.raw["board"]["height"]
-
-    @property
-    def food(self):
-        return {point_to_tuple(p) for p in self.raw["board"]["food"]}
-
-    @property
-    def snakes(self):
-        return [Snake(p) for p in self.raw["board"]["snakes"]]
-
-    @property
-    def other_snakes(self):
-        return [s for s in self.snakes if s.id != self.you.id]

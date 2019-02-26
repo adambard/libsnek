@@ -39,12 +39,13 @@ def is_dead(board_state, pos=None):
     if pos is None:
         pos = board_state.you.head
 
-
-    if c_is_dead(board_state.board_array, pos):
+    if board_state.you.health <= 1:
+        # TODO Calculate nearest food and use this
         return True
 
-    elif board_state.you.health <= 1:
+    elif c_is_dead(board_state.board_array, pos):
         return True
+
     else:
         for s in board_state.other_snakes:
             if pos == s.tail:
@@ -87,7 +88,7 @@ def minimax_nodes(board_state):
     return [
         board_state.as_snake(board_state.you, with_move=pos)
         for pos in surroundings(board_state.you.head)
-        if not is_dead(board_state, pos)
+        if not c_is_dead(board_state.board_array, pos)
     ]
 
 
@@ -98,11 +99,11 @@ def minimax_score(board_state, maximizing_player=True, depth=5):
 
     if maximizing_player:
         # Make our own best move
-        score = MIN_SCORE
+        max_score = MIN_SCORE
         for bs in minimax_nodes(board_state):
-            score = max(score, minimax_score(bs, False, depth - 1))
+            max_score = max(max_score, minimax_score(bs, False, depth - 1))
 
-        return score
+        return max_score
 
     else:
         # Make each other snake's move to minimize our score
@@ -124,7 +125,7 @@ def minimax_score(board_state, maximizing_player=True, depth=5):
         return min(scores)
 
 
-def apply(board_state):
+def apply(board_state, depth=5):
     positions = surroundings(board_state.you.head)
 
     out = []
@@ -134,7 +135,7 @@ def apply(board_state):
             out.append(MIN_SCORE)
         else:
             bs = board_state.as_snake(board_state.you, with_move=pos)
-            out.append(minimax_score(bs, True))
+            out.append(minimax_score(bs, True, depth=depth))
 
     return np.array(out)
 
