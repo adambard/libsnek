@@ -76,7 +76,12 @@ def score_board_state(board_state):
 
     if all_others_dead:
         return MAX_SCORE
-    elif num_dead > 0:
+
+    if all(is_dead(board_state, p) for p in surroundings(board_state.you.head)):
+        # We are trapped
+        return MIN_SCORE
+
+    if num_dead > 0:
         return KILL_SCORE ** num_dead
     else:
         return NEUTRAL_SCORE

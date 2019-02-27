@@ -5,6 +5,7 @@ import numpy as np
 
 from nose.tools import eq_
 from libsnek import data, minimax
+from libsnek.movement import is_ok
 
 
 TRAP_YOU = {
@@ -76,9 +77,80 @@ def test_trap_minimax():
 
     TRAP_BOARD["you"] = TRAP_BOARD["board"]["snakes"][1] = dict(TRAP_YOU, body=[{"x": 5, "y": 1}] + TRAP_YOU["body"])
     bs = data.BoardState(TRAP_BOARD)
-    scores = minimax.apply(bs, depth=4)
+    scores= minimax.apply(bs, depth=4)
 
     yield eq_, list(scores), [minimax.MAX_SCORE, minimax.NEUTRAL_SCORE, minimax.NEUTRAL_SCORE, minimax.MIN_SCORE]
+
+
+DOOMED_YOU = {
+    "id": uuid.uuid4(),
+    "health": 100,
+    "body": [
+        {"x": 1, "y": 1},
+        {"x": 1, "y": 2},
+        {"x": 1, "y": 3},
+    ]
+}
+
+DOOMED_BOARD = {
+    "you": DOOMED_YOU,
+    "turn": 7,
+    "board": {
+        "width": 12,
+        "height": 12,
+        "food": [
+            {"x": 2, "y": 4},
+            {"x": 5, "y": 2},
+            {"x": 5, "y": 6},
+        ],
+        "snakes": [
+            {
+                "id": str(uuid.uuid4()),
+                "health": 98,
+                "name": "Bob-jim",
+                "body": [
+                    {"x": 2, "y": 2},
+                    {"x": 2, "y": 1},
+                    {"x": 2, "y": 0},
+                    {"x": 1, "y": 0},
+                    {"x": 0, "y": 0},
+                    {"x": 0, "y": 1},
+                    {"x": 0, "y": 2},
+                    {"x": 0, "y": 3},
+                    ]
+                },
+            DOOMED_YOU 
+        ]
+    },
+    "game": {
+        "id": str(uuid.uuid4()),
+    },
+}
+
+def test_impending_doom():
+    """
+    [[6 6 6 0 0 0 0 0 0 0 0 0]
+     [6 2 6 0 0 0 0 0 0 0 0 0]
+     [6 3 5 0 0 1 0 0 0 0 0 0]
+     [7 4 0 0 0 0 0 0 0 0 0 0]
+     [0 0 1 0 0 0 0 0 0 0 0 0]
+     [0 0 0 0 0 0 0 0 0 0 0 0]
+     [0 0 0 0 0 1 0 0 0 0 0 0]
+     [0 0 0 0 0 0 0 0 0 0 0 0]
+     [0 0 0 0 0 0 0 0 0 0 0 0]
+     [0 0 0 0 0 0 0 0 0 0 0 0]
+     [0 0 0 0 0 0 0 0 0 0 0 0]
+     [0 0 0 0 0 0 0 0 0 0 0 0]]
+    """
+
+    bs = data.BoardState(DOOMED_BOARD)
+
+    assert not is_ok(bs, (0, 1))
+    assert not is_ok(bs, (1, 0))
+    assert not is_ok(bs, (2, 1))
+    assert not is_ok(bs, (1, 2))
+    eq_(minimax.score_board_state(bs), minimax.MIN_SCORE)
+
 
 
 def test_minimax():
