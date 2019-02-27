@@ -94,8 +94,10 @@ def minimax_nodes(board_state):
 
 def minimax_score(board_state, maximizing_player=True, depth=5):
 
-    if depth == 0:
-        return score_board_state(board_state)
+    board_score = score_board_state(board_state)
+
+    if board_score == MIN_SCORE or board_score == MAX_SCORE or depth == 0:
+        return board_score
 
     if maximizing_player:
         # Make our own best move
@@ -135,7 +137,7 @@ def apply(board_state, depth=5):
             out.append(MIN_SCORE)
         else:
             bs = board_state.as_snake(board_state.you, with_move=pos)
-            out.append(minimax_score(bs, True, depth=depth))
+            out.append(minimax_score(bs, False, depth=depth))
 
     return np.array(out)
 

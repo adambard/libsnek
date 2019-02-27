@@ -55,11 +55,30 @@ TRAP_BOARD = {
 
 
 def test_trap_minimax():
+    """
+    [[6 6 6 5 0 0 0 0 0 0 0 0]
+     [6 3 3 3 2 0 0 0 0 0 0 0]
+     [6 4 0 0 0 1 0 0 0 0 0 0]
+     [7 0 0 0 0 0 0 0 0 0 0 0]
+     [0 0 1 0 0 0 0 0 0 0 0 0]
+     [0 0 0 0 0 0 0 0 0 0 0 0]
+     [0 0 0 0 0 1 0 0 0 0 0 0]
+     [0 0 0 0 0 0 0 0 0 0 0 0]
+     [0 0 0 0 0 0 0 0 0 0 0 0]
+     [0 0 0 0 0 0 0 0 0 0 0 0]
+     [0 0 0 0 0 0 0 0 0 0 0 0]
+     [0 0 0 0 0 0 0 0 0 0 0 0]]
+    """
     bs = data.BoardState(TRAP_BOARD)
-    scores = minimax.apply(bs, depth=3)
+    scores = minimax.apply(bs, depth=4)
 
+    yield eq_, list(scores), [minimax.MIN_SCORE, minimax.NEUTRAL_SCORE, minimax.NEUTRAL_SCORE, minimax.MIN_SCORE]
 
-    eq_(list(scores), [minimax.MAX_SCORE, minimax.NEUTRAL_SCORE, minimax.NEUTRAL_SCORE, minimax.MIN_SCORE])
+    TRAP_BOARD["you"] = TRAP_BOARD["board"]["snakes"][1] = dict(TRAP_YOU, body=[{"x": 5, "y": 1}] + TRAP_YOU["body"])
+    bs = data.BoardState(TRAP_BOARD)
+    scores = minimax.apply(bs, depth=4)
+
+    yield eq_, list(scores), [minimax.MAX_SCORE, minimax.NEUTRAL_SCORE, minimax.NEUTRAL_SCORE, minimax.MIN_SCORE]
 
 
 def test_minimax():
