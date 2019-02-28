@@ -99,12 +99,14 @@ def minimax_nodes(board_state):
 
 def minimax_score(board_state, maximizing_player=True, depth=5):
 
-    board_score = score_board_state(board_state)
-
-    if board_score == MIN_SCORE or board_score == MAX_SCORE or depth == 0:
-        return board_score
-
     if maximizing_player:
+
+        # Only conclude minimax before our turn (since we start with a move)
+        board_score = score_board_state(board_state)
+
+        if board_score == MIN_SCORE or board_score == MAX_SCORE or depth <= 0:
+            return board_score
+
         # Make our own best move
         max_score = MIN_SCORE
         for bs in minimax_nodes(board_state):

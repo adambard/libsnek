@@ -8,6 +8,16 @@ from libsnek import data, minimax
 from libsnek.movement import is_ok
 
 
+def snake(body, health=100):
+    return {
+        "id": uuid.uuid4(),
+        "health": health,
+        "body": [
+            {"x": x, "y": y} for x, y in body
+        ]
+    }
+
+
 TRAP_YOU = {
     "id": uuid.uuid4(),
     "health": 100,
@@ -57,6 +67,7 @@ TRAP_BOARD = {
 
 def test_trap_minimax():
     """
+    Test Trap minimax
     [[6 6 6 5 0 0 0 0 0 0 0 0]
      [6 3 3 3 2 0 0 0 0 0 0 0]
      [6 4 0 0 0 1 0 0 0 0 0 0]
@@ -71,13 +82,14 @@ def test_trap_minimax():
      [0 0 0 0 0 0 0 0 0 0 0 0]]
     """
     bs = data.BoardState(TRAP_BOARD)
-    scores = minimax.apply(bs, depth=4)
+
+    scores = minimax.apply(bs, depth=3)
 
     yield eq_, list(scores), [minimax.MIN_SCORE, minimax.NEUTRAL_SCORE, minimax.NEUTRAL_SCORE, minimax.MIN_SCORE]
 
     TRAP_BOARD["you"] = TRAP_BOARD["board"]["snakes"][1] = dict(TRAP_YOU, body=[{"x": 5, "y": 1}] + TRAP_YOU["body"])
     bs = data.BoardState(TRAP_BOARD)
-    scores= minimax.apply(bs, depth=4)
+    scores = minimax.apply(bs, depth=3)
 
     yield eq_, list(scores), [minimax.MAX_SCORE, minimax.NEUTRAL_SCORE, minimax.NEUTRAL_SCORE, minimax.MIN_SCORE]
 
@@ -163,11 +175,61 @@ def test_minimax():
     assert minimax.is_dead(up_board)
     eq_(minimax.score_board_state(bs.as_snake(bs.you, with_move=(4, 1))), minimax.MIN_SCORE)
 
-    scores = minimax.apply(bs, depth=5)
+    scores = minimax.apply(bs, depth=2)
     expected_scores = np.array([minimax.MIN_SCORE, minimax.MIN_SCORE, minimax.MIN_SCORE, minimax.NEUTRAL_SCORE])
 
     eq_(list(scores), list(expected_scores))
 
 
+SIT_YOU = snake([
+    (8, 9),
+    (8, 8),
+    (8, 7),
+    (7, 7),
+    (7, 6),
+    (8, 6),
+    (8, 5),
+    (8, 4),
+    (8, 3),
+    (8, 2),
+    (7, 2),
+    (7, 1),
+])
 
+SIT_BOARD = {
+    "you": SIT_YOU,
+    "turn": 118,
+    "game": {
+        "id": str(uuid.uuid4()),
+    },
+    "board": {
+        "width": 11,
+        "height": 11,
+        "food": [
+            {"x": 7, "y": 10},
+            {"x": 0, "y": 9},
+            {"x": 3, "y": 3},
+            {"x": 10, "y": 0},
+        ],
+        "snakes": [
+            snake([
+                (7, 9),
+                (6, 9),
+                (6, 8),
+                (5, 8),
+                (5, 7),
+                (6, 7),
+                (6, 6),
+                (5, 6),
+                (4, 6),
+            ]),
+            SIT_YOU
+        ]
+    }
+}
+
+def test_situation():
+    bs = data.BoardState(SIT_BOARD)
+    scores = minimax.apply(bs, depth=3)
+    eq_(list(scores), [minimax.MIN_SCORE, minimax.NEUTRAL_SCORE, minimax.NEUTRAL_SCORE, minimax.MIN_SCORE])
 
