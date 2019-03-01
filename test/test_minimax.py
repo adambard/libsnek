@@ -85,13 +85,13 @@ def test_trap_minimax():
 
     scores = minimax.apply(bs, depth=3)
 
-    yield eq_, list(scores), [minimax.MIN_SCORE, minimax.NEUTRAL_SCORE, minimax.NEUTRAL_SCORE, minimax.MIN_SCORE]
+    yield eq_, list(scores), [0.017, 1.02, 1.02, 0.001]
 
     TRAP_BOARD["you"] = TRAP_BOARD["board"]["snakes"][1] = dict(TRAP_YOU, body=[{"x": 5, "y": 1}] + TRAP_YOU["body"])
     bs = data.BoardState(TRAP_BOARD)
     scores = minimax.apply(bs, depth=3)
 
-    yield eq_, list(scores), [minimax.MAX_SCORE, minimax.NEUTRAL_SCORE, minimax.NEUTRAL_SCORE, minimax.MIN_SCORE]
+    yield eq_, list(scores), [9999.02, 1.0, 1.0, 0.001]
 
 
 DOOMED_YOU = {
@@ -176,7 +176,7 @@ def test_minimax():
     eq_(minimax.score_board_state(bs.as_snake(bs.you, with_move=(4, 1))), minimax.MIN_SCORE)
 
     scores = minimax.apply(bs, depth=3)
-    expected_scores = np.array([minimax.MIN_SCORE, minimax.MIN_SCORE, minimax.MIN_SCORE, minimax.NEUTRAL_SCORE])
+    expected_scores = np.array([0.001, 0.007, 0.001, 1.04])
 
     eq_(list(scores), list(expected_scores))
 
@@ -231,5 +231,66 @@ SIT_BOARD = {
 def test_situation():
     bs = data.BoardState(SIT_BOARD)
     scores = minimax.apply(bs, depth=3)
-    eq_(list(scores), [minimax.MIN_SCORE, minimax.NEUTRAL_SCORE, minimax.NEUTRAL_SCORE, minimax.MIN_SCORE])
+    eq_(list(scores), [0.001, 1.03, 1.03, 0.017])
 
+
+
+DEAD_YOU = snake([
+    (3, 10),
+    (3, 9),
+    (3, 8),
+    (4, 8),
+    (5, 8),
+    (5, 7),
+    (5, 6),
+    (6, 6),
+])
+
+DEAD_BOARD = {
+    "you": DEAD_YOU,
+    "turn": 118,
+    "game": {
+        "id": str(uuid.uuid4()),
+    },
+    "board": {
+        "width": 11,
+        "height": 11,
+        "food": [
+            {"x": 2, "y": 0},
+        ],
+        "snakes": [
+            snake([
+                (4, 9),
+                (5, 9),
+                (6, 9),
+                (6, 8),
+                (7, 8),
+                (8, 8),
+                (8, 9),
+                (8, 10),
+                (7, 10),
+                (6, 10),
+            ]),
+            snake([
+                (1, 10),
+                (1, 9),
+                (0, 9),
+                (0, 8),
+                (0, 7),
+                (1, 7),
+                (1, 6),
+                (2, 6)
+            ]),
+            DEAD_YOU
+        ]
+    }
+}
+
+
+def test_dead():
+    bs = data.BoardState(DEAD_BOARD)
+    scores = minimax.apply(bs, depth=3)
+    eq_(
+        list(scores),
+        [0.001, 0.017, 0.001, 0.027]
+    )

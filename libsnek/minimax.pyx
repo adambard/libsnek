@@ -97,6 +97,30 @@ def minimax_nodes(board_state):
     ]
 
 
+cdef double combine_snake_scores(list scores):
+    """
+    Normally, minimax would use the minimum score.
+    We'll do the same, but bump it up for any more-than-minimum
+    scores we find -- better a possible death than a certain one.
+    """
+    # Scores is an array of MIN_SCORE, MAX_SCORe, or NEUTRAL_SSCORE
+    if not scores:
+        return 1.0  # NEUTRAL_SCORE
+
+    cdef double min_score, bonus
+    min_score = 9999.0
+    bonus = 0.0
+    for s in scores:
+        if s < min_score:
+            min_score = s
+
+        if s >= 1.0:
+            # We did ok, add an extra min score
+            bonus += 0.01
+
+    return min_score + bonus
+
+
 def minimax_score(board_state, maximizing_player=True, depth=5):
 
     if maximizing_player:
@@ -105,6 +129,10 @@ def minimax_score(board_state, maximizing_player=True, depth=5):
         board_score = score_board_state(board_state)
 
         if board_score == MIN_SCORE or board_score == MAX_SCORE or depth <= 0:
+            if board_score == MIN_SCORE:
+                # Make sure that a far-future death is worth more than
+                # an impending one.
+                return board_score * (9 - depth)
             return board_score
 
         # Make our own best move
@@ -126,15 +154,17 @@ def minimax_score(board_state, maximizing_player=True, depth=5):
                 # a little time by skipping their move
                 continue
 
+            snake_scores = [MAX_SCORE]
             min_score = MAX_SCORE
 
             for bs in minimax_nodes(new_bs.as_snake(s)):
                 score = minimax_score(bs.as_snake(board_state.you), True, depth - 1)
+                snake_scores.append(score)
                 if score < min_score:
                     min_score = score
                     new_bs = bs
 
-            scores.append(min_score)
+            scores.append(combine_snake_scores(snake_scores))
 
         if not scores:
             return minimax_score(board_state, True, depth - 1)
