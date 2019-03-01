@@ -175,7 +175,7 @@ def test_minimax():
     assert minimax.is_dead(up_board)
     eq_(minimax.score_board_state(bs.as_snake(bs.you, with_move=(4, 1))), minimax.MIN_SCORE)
 
-    scores = minimax.apply(bs, depth=2)
+    scores = minimax.apply(bs, depth=3)
     expected_scores = np.array([minimax.MIN_SCORE, minimax.MIN_SCORE, minimax.MIN_SCORE, minimax.NEUTRAL_SCORE])
 
     eq_(list(scores), list(expected_scores))

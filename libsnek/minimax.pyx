@@ -7,7 +7,7 @@ import numpy as np
 import functools
 
 cimport libsnek.data as data
-from movement import is_ok, surroundings
+from movement import is_ok, surroundings, distance
 
 
 MIN_SCORE = 0.001
@@ -121,6 +121,11 @@ def minimax_score(board_state, maximizing_player=True, depth=5):
         new_bs = board_state
 
         for s in board_state.other_snakes:
+            if distance(board_state.you.head, s.head) > depth:
+                # A snake more than <depth> away can't reach us, save
+                # a little time by skipping their move
+                continue
+
             min_score = MAX_SCORE
 
             for bs in minimax_nodes(new_bs.as_snake(s)):
@@ -130,6 +135,9 @@ def minimax_score(board_state, maximizing_player=True, depth=5):
                     new_bs = bs
 
             scores.append(min_score)
+
+        if not scores:
+            return minimax_score(board_state, True, depth - 1)
 
         return min(scores)
 
